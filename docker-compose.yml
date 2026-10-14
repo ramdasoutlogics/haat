@@ -1,0 +1,104 @@
+# Haat: everything runs from this file. Settings come from .env (copy .env.example).
+#   make up       start / rebuild everything
+#   make migrate  apply database migrations (never automatic)
+#   make seed     add demo data to an empty database
+
+x-app: &app
+  build: ./backend
+  image: haat-api
+  env_file: .env
+  environment:
+    # Inside Docker the database and Redis are reached by service name.
+    DATABASE_URL: postgresql://${POSTGRES_USER:-haat}:${POSTGRES_PASSWORD:-haat}@db:5432/${POSTGRES_DB:-haat}
+    REDIS_URL: redis://redis:6379/0
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-haat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-haat}
+      POSTGRES_DB: ${POSTGRES_DB:-haat}
+    # Tuned for a small server (2 CPU / 4 GB RAM). On a bigger box scale
+    # shared_buffers to ~25% of RAM and effective_cache_size to ~75%.
+    # max_connections must cover WEB_CONCURRENCY x DB_POOL_MAX + the worker's pool.
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - random_page_cost=1.1          # SSD storage
+      - -c
+      - effective_io_concurrency=200  # SSD storage
+      - -c
+      - wal_buffers=16MB
+      - -c
+      - min_wal_size=512MB
+      - -c
+      - max_wal_size=2GB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - default_statistics_target=100
+      - -c
+      - jit=off                       # short OLTP queries are faster without JIT
+      - -c
+      - log_min_duration_statement=500ms  # log slow queries
+    shm_size: 256mb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # Holds the cache, the job queue and buffered view counts; snapshots to disk so jobs survive restarts.
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    <<: *app
+
+  worker:
+    <<: *app
+    command: ["arq", "app.worker.WorkerSettings"]
+
+  web:
+    build: ./web
+    environment:
+      API_URL: http://api:8000
+      PORT: 3000
+      CDN_URL: ${CDN_URL:-}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

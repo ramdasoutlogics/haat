@@ -1,0 +1,176 @@
+/* Sell: phone (App-Sell, 4 steps) and desktop (Web-Sell, one long form + live preview) */
+.sell { display: flex; flex-direction: column; flex: 1; background: #fff; }
+.sell-link { height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--green); font-weight: 700; font-size: 14px; }
+.sell-link:hover { color: var(--green-hover); }
+
+/* Phone header */
+.sell-top { position: sticky; top: 0; z-index: 20; background: #fff; padding: calc(env(safe-area-inset-top) + 8px) 16px 10px; display: flex; flex-direction: column; gap: 12px; }
+.sell-top-row { display: flex; align-items: center; justify-content: space-between; }
+.sell-top-row .icon-btn { margin-left: -10px; }
+.sell-top-row .sell-link { margin-right: -8px; }
+.sell-top-title { font-size: 16px; font-weight: 700; font-family: var(--body); }
+.sell-progress { display: flex; gap: 6px; }
+.sell-progress span { flex: 1; height: 5px; border-radius: 3px; background: var(--line); transition: background .2s; }
+.sell-progress span.on { background: var(--green); }
+
+.sell-wrap { padding-top: 8px; padding-bottom: 120px; }
+@media (max-width: 899.98px) { .sell .wrap { padding-left: 16px; padding-right: 16px; } }
+.sell-layout { display: block; }
+.sell-form { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.sell-sec { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+@media (max-width: 899.98px) { .sell-sec.off { display: none; } }
+.sell-sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sell-h { font-size: 24px; letter-spacing: -0.4px; }
+.sell-h-sm { font-size: 15px; font-family: var(--body); letter-spacing: 0; }
+.sell-err { font-size: 13px; font-weight: 600; color: var(--red-ink); }
+.sell-row-hint { display: flex; justify-content: space-between; gap: 12px; margin-top: -2px; }
+.sell-row-hint .hint { flex: none; font-size: 12px; }
+.input[aria-invalid="true"], .sell-money.bad { border-color: var(--red); }
+.sell-opt { font-weight: 500; color: var(--muted); }
+
+/* Category row */
+.sell-cat { display: flex; align-items: center; gap: 10px; padding: 4px 6px 4px 14px; min-height: 48px; border-radius: 14px; background: var(--green-soft); }
+.sell-cat svg { flex: none; }
+.sell-cat.nocat { background: var(--soft); }
+.sell-cat-text { flex: 1; font-size: 14px; min-width: 0; }
+.sell-cat-btn { height: 44px; padding: 0 10px; border: 0; background: transparent; color: var(--green); font-weight: 700; font-size: 14px; border-radius: 10px; }
+.sell-cat-btn[aria-invalid="true"] { color: var(--red-ink); }
+
+/* Photos */
+.sell-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sell-photo { aspect-ratio: 1 / 1; border-radius: 14px; }
+.sell-cover { position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 5px; background: var(--ink); color: #fff; font-size: 10px; font-weight: 700; }
+.sell-add { aspect-ratio: 1 / 1; border-radius: 14px; border: 2px dashed #9FB3A8; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--green); font-weight: 700; font-size: 12px; }
+.sell-add:hover { background: var(--green-soft); }
+
+/* Format cards */
+.sell-formats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sell-fmt { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 72px; padding: 12px 14px; border-radius: 14px; background: #fff; color: var(--ink); border: 1px solid var(--line-2); cursor: pointer; position: relative; }
+.sell-fmt strong { font-size: 15px; }
+.sell-fmt span { font-size: 12px; opacity: .85; line-height: 1.35; }
+.sell-fmt.on { background: var(--green-soft); color: var(--green-hover); border: 2px solid var(--green); padding: 11px 13px; }
+.sell-fmt:has(input:focus-visible), .sell-cond:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
+.sell-fmt:hover:not(.on) { border-color: var(--ink); }
+
+/* Price */
+.sell-price-grid { display: flex; flex-direction: column; gap: 14px; }
+.sell-money { display: flex; align-items: center; gap: 6px; height: 60px; border: 1.5px solid var(--ink); border-radius: 14px; padding: 0 16px; background: #fff; }
+.sell-money > span { font-size: 28px; font-weight: 700; }
+.sell-money input:focus { outline: none; }
+.sell-money input { flex: 1; min-width: 0; border: 0; height: 100%; font: 700 28px var(--display); background: transparent; outline: none; }
+.sell-money:focus-within { outline: 2px solid var(--green); outline-offset: 1px; }
+.sell-money.sm { height: 52px; border: 1px solid var(--line-2); padding: 0 14px; }
+.sell-money.sm > span, .sell-money.sm input { font: 600 17px var(--body); }
+.sell-money.bad { border-color: var(--red); }
+.sell-select { font-weight: 600; }
+.sell-free { padding: 14px 16px; border-radius: 12px; background: var(--cream); font-size: 15px; line-height: 1.45; }
+
+/* Details */
+.sell-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.sell-fieldset legend { font-weight: 700; font-size: 15px; margin-bottom: 8px; padding: 0; }
+.sell-conds { display: flex; gap: 8px; flex-wrap: wrap; }
+.sell-cond { height: 44px; padding: 0 16px; border-radius: 999px; display: inline-flex; align-items: center; font-weight: 600; font-size: 14px; background: #fff; color: var(--ink); border: 1px solid var(--line-2); cursor: pointer; position: relative; }
+.sell-cond.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Preview card (phone review + desktop aside) */
+.sell-pv { background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: 0 14px 36px rgba(22, 33, 28, .08); }
+.sell-pv-img { aspect-ratio: 4 / 3; }
+.sell-pv-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.sell-pv-price { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sell-pv-price strong { font-size: 22px; }
+.sell-pv-title { font-size: 15px; overflow-wrap: anywhere; }
+.sell-pv-meta { font-size: 13px; color: var(--muted); }
+
+/* Phone review */
+.sell-review .sell-pv { box-shadow: none; }
+.sell-review .sell-pv-img { aspect-ratio: 16 / 9; }
+.sell-sum { margin: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.sell-sum-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 2px 4px 2px 14px; border-bottom: 1px solid var(--line-3); min-height: 48px; }
+.sell-sum-row:last-child { border-bottom: 0; }
+.sell-sum-row dt { font-size: 13px; color: var(--muted); }
+.sell-sum-row dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.sell-sum-desc { font-size: 14px; line-height: 1.5; color: var(--ink-2); white-space: pre-line; padding: 12px 14px; border-radius: 14px; background: var(--bg); }
+
+/* Phone bottom bar */
+.sell-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 12px 16px max(30px, env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+.sell-bar .btn { height: 54px; font-size: 16px; }
+.sell-bar .btn.ghost { flex: 1; }
+.sell-bar .btn.red { flex: 2; }
+
+/* Category picker sheet */
+.sell-cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sell-catopt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 16px; border: 1px solid transparent; background: transparent; font-size: 13px; font-weight: 600; }
+.sell-catopt:hover { background: var(--bg); }
+.sell-catopt.on { border: 2px solid var(--green); background: var(--green-soft); padding: 9px 3px; }
+.sell-catopt-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+.sell-failure { margin-top: -6px; }
+
+/* ---------- Desktop ---------- */
+@media (min-width: 900px) {
+  .sell { background: var(--bg); }
+  .sell-wrap { padding-top: 32px; padding-bottom: 80px; }
+  .sell-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+  .sell-head h1 { font-size: 38px; letter-spacing: -1px; margin-bottom: 6px; }
+  .sell-head p { color: var(--muted); font-size: 16px; }
+  .sell-head-actions { display: flex; align-items: center; gap: 10px; }
+  .sell-saved { font-size: 13px; color: var(--muted); }
+  .sell-exit { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 600; }
+  .sell-exit:hover { background: var(--soft); color: var(--ink); }
+
+  .sell-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+  .sell-steps { position: sticky; top: 150px; }
+  .sell-steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .sell-step { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 15px; color: var(--muted); }
+  .sell-step:hover { color: var(--ink); background: rgba(255, 255, 255, .6); }
+  .sell-step.done { color: var(--ink); }
+  .sell-step.cur { background: #fff; color: var(--ink); box-shadow: 0 2px 8px rgba(0, 0, 0, .06); }
+  .sell-step-dot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--seg); color: var(--muted); }
+  .sell-step.cur .sell-step-dot { background: var(--ink); color: #fff; }
+  .sell-step.done .sell-step-dot { background: var(--green); color: #fff; }
+
+  .sell-form { gap: 20px; }
+  .sell-sec { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px; gap: 14px; scroll-margin-top: 150px; }
+  .sell-sec.o1 { order: 1; } .sell-sec.o2 { order: 2; } .sell-sec.o3 { order: 3; } .sell-sec.o4 { order: 4; } .sell-sec.o5 { order: 5; }
+  .sell-failure, .sell-foot { order: 9; }
+  .sell-h, .sell-h-sm { font-size: 20px; font-family: var(--display); letter-spacing: -0.2px; }
+  .sell-sec .field > label, .sell-fieldset legend { font-size: 14px; font-weight: 600; }
+  .sell-sec .input { height: 50px; border-radius: 12px; }
+  .sell-sec textarea.input { height: auto; font-size: 15px; font-weight: 400; line-height: 1.55; }
+
+  .sell-cat { padding: 14px 16px; gap: 12px; }
+  .sell-cat-text { font-size: 15px; }
+  .sell-cat-btn { height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--green); background: #fff; }
+  .sell-cat-btn:hover { background: var(--green-soft); }
+
+  .sell-photos { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+  .sell-add { gap: 8px; font-size: 14px; }
+  .sell-cover { left: 8px; bottom: 8px; padding: 3px 7px; border-radius: 6px; font-size: 11px; }
+
+  .sell-formats { grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 12px; }
+  .sell-fmt { gap: 8px; padding: 16px; border-radius: 16px; min-height: 0; }
+  .sell-fmt.on { padding: 15px; }
+  .sell-fmt strong { font-size: 16px; }
+  .sell-fmt span { font-size: 13px; line-height: 1.4; }
+
+  .sell-price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; align-items: start; }
+  .sell-money { height: 50px; border: 1px solid var(--line-2); border-radius: 12px; padding: 0 14px; }
+  .sell-money > span, .sell-money input { font: 600 16px var(--body); }
+  .sell-money.sm { height: 50px; border-radius: 12px; }
+  .sell-money.sm > span, .sell-money.sm input { font-size: 16px; }
+  .sell-cond { height: 42px; }
+
+  .sell-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 18px; }
+  .sell-foot .hint { max-width: 460px; }
+  .sell-foot-actions { display: flex; gap: 10px; }
+  .sell-publish { padding: 0 28px; font-size: 16px; }
+
+  .sell-aside { position: sticky; top: 150px; display: flex; flex-direction: column; gap: 14px; }
+  .sell-kicker { font-size: 13px; font-weight: 700; letter-spacing: .6px; color: var(--muted); }
+  .sell-tips { padding: 18px; border-radius: 18px; background: var(--ink); color: #fff; display: flex; flex-direction: column; gap: 10px; }
+  .sell-tips strong { font-size: 15px; }
+  .sell-tips ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; color: #D6DDD9; }
+}
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .sell-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .sell-steps { display: none !important; }
+}

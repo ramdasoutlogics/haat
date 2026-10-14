@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-ssr
+.env
+*.local
+*.log
+dump.rdb
+Dockerfile
+.dockerignore
