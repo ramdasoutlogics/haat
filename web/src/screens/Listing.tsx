@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Listing as Item } from '../api'
+import { goSignIn, useAuth } from '../auth'
 import { Avatar, Badge, ErrorBox, ListingCard, Sheet, Stepper, Toast, VerifiedMark } from '../components/ui'
 import { Icon } from '../icons'
 import { ago, closesAt, cx, inr, thumbFor, timeLeft } from '../lib'
@@ -51,6 +52,7 @@ export default function Listing() {
   const { data, setData, error, loading, reload } = usePageData(load)
   const navigate = useNavigate()
   const now = useNow()
+  const { user } = useAuth()
   const [sheet, setSheet] = useState<SheetKind | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -112,11 +114,12 @@ export default function Listing() {
     if (note?.trim()) await api.send(chat_id, note.trim()).catch(() => {})
     navigate(`/chats/${chat_id}`)
   })
-  const openChat = () => run('chat', async () => {
+  const openChat = () => !user ? goSignIn() : run('chat', async () => {
     const { chat_id } = await api.openChat(l.id)
     navigate(`/chats/${chat_id}`)
   })
   const toggleWatch = async () => {
+    if (!user) return goSignIn()
     const was = l.watched
     setListing({ ...l, watched: !was, watchers: (l.watchers ?? 0) + (was ? -1 : 1) })
     try {
@@ -142,6 +145,7 @@ export default function Listing() {
     }
   }
   const openSheet = (k: SheetKind) => {
+    if (!user) return goSignIn()
     setActionError(null)
     setSheet(k)
   }

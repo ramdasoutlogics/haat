@@ -86,7 +86,7 @@ app.get('*', async (req, res) => {
       html = await vite.transformIndexHtml(req.originalUrl, await fs.readFile(path.join(root, 'index.html'), 'utf-8'))
       renderFn = (await vite.ssrLoadModule('/src/entry-server.tsx')).render
     }
-    const out = await renderFn(req.originalUrl, apiUrl)
+    const out = await renderFn(req.originalUrl, apiUrl, req.headers.cookie || '')
     html = html
       .replace('<!--app-title-->', escapeHtml(out.title))
       .replace('<!--app-head-->', preloadLinks(out.screenFile))

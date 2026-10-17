@@ -45,6 +45,7 @@ export const ICONS = {
   eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 0 0 0-6",
   edit: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
   trend: "M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
 } as const
 
 export type IconName = keyof typeof ICONS

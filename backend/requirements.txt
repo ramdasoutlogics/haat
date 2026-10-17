@@ -5,6 +5,7 @@ redis==5.3.1
 orjson==3.13.0
 arq==0.28.0
 pydantic-settings==2.16.0
+httpx==0.28.1
 # Migrations (run on demand only: `make migrate`)
 alembic==1.20.0
 sqlalchemy==2.1.4

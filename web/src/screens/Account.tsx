@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { api, type Listing, type Me, type Notification } from '../api'
+import { signOut, UserAvatar } from '../auth'
 import { Empty, ErrorBox, Sheet, Thumb, Toast, VerifiedMark } from '../components/ui'
 import { Icon, type IconName } from '../icons'
 import { ago, cx, inr, priceOf, timeLeft } from '../lib'
@@ -204,6 +205,7 @@ export default function Account() {
     { label: 'Payouts & UPI', icon: 'wallet', onClick: soon('Payouts are') },
     { label: 'Ratings & reviews', icon: 'star', note: user.ratings, onClick: soon('Reviews are') },
     { label: 'Help & safety', icon: 'shield', onClick: soon('Help centre is') },
+    { label: 'Sign out', icon: 'logout', onClick: signOut },
   ]
 
   const NAV: { id?: Tab; label: string; icon: IconName; count?: number | string; to?: string; onClick?: () => void }[] = [
@@ -216,6 +218,7 @@ export default function Account() {
     { label: 'Ratings', icon: 'star', count: user.ratings, onClick: soon('Reviews are') },
     { label: 'Payouts', icon: 'wallet', onClick: soon('Payouts are') },
     { label: 'Settings', icon: 'cog', onClick: soon('Settings are') },
+    { label: 'Sign out', icon: 'logout', onClick: signOut },
   ]
 
   const HEAD: Record<Tab, string> = { ads: 'My listings', watch: 'Watchlist', bought: 'Bought & won', notes: 'Notifications' }
@@ -226,7 +229,7 @@ export default function Account() {
       <div className="m-only">
         <header className="acct-hero">
           <div className="acct-id">
-            <span className="acct-avatar display" aria-hidden="true">{user.initials}</span>
+            <UserAvatar user={user} className="acct-avatar display" />
             <span className="acct-who">
               <h1 className="display">{user.name}{user.verified && <VerifiedMark size={18} />}</h1>
               <span>{user.city} · member since {user.member_since}</span>
@@ -296,7 +299,7 @@ export default function Account() {
       <div className="d-only wrap acct-d">
         <aside className="acct-side">
           <div className="acct-card acct-profile">
-            <span className="acct-avatar display" aria-hidden="true">{user.initials}</span>
+            <UserAvatar user={user} className="acct-avatar display" />
             <div className="acct-who">
               <strong>{user.name}</strong>
               <span>Member since {user.member_since} · {user.city}</span>

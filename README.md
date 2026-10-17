@@ -41,11 +41,31 @@ All settings live in `.env`.
 | `WEB_CONCURRENCY` | Number of API worker processes (about 1–2 per CPU core) |
 | `CORS_ORIGINS` | Sites allowed to call the API, comma separated |
 | `CDN_URL` | Serve images from this CDN, e.g. `https://cdn.example.com` |
-| `DEMO_USER_ID` | Which user is signed in (until login is added) |
+| `GOOGLE_CLIENT_ID` | Google sign-in client ID (see below) |
+| `GOOGLE_CLIENT_SECRET` | Google sign-in client secret |
+| `PUBLIC_URL` | Address people open the site at, e.g. `https://haat.example.com` |
+| `SESSION_DAYS` | How long people stay signed in (default 30) |
+| `DEMO_USER_EMAIL` | Google email that takes over the demo user and its data on first sign-in |
+| `DEMO_USER_ID` | The demo user's id (default 1, "Ram D.") |
 | `WEB_PORT` | Port the site opens on (default 3000) |
 
 Postgres tuning (memory, connections, SSD settings) is in `docker-compose.yml` under `db`.
 It is sized for a 2 CPU / 4 GB server; the comment there says how to scale it.
+
+## Sign in with Google
+
+People sign in with their Google account. Browsing works without signing in; selling, bidding, offers, chats and the watchlist need it.
+
+1. Open https://console.cloud.google.com/apis/credentials and pick (or create) a project.
+2. If asked, set up the consent screen: app name "Haat", your email, audience "External".
+3. Click **Create credentials → OAuth client ID**, type **Web application**.
+4. Under **Authorized redirect URIs** add `http://localhost:3000/api/auth/google/callback`
+   (in production: `https://your-domain/api/auth/google/callback`).
+5. Copy the client ID and secret into `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+6. Put your own Gmail in `DEMO_USER_EMAIL` to keep the demo user's listings and chats as yours.
+7. Run `make migrate`, then restart the API.
+
+Sessions are kept in Redis; signing out ends the session at once.
 
 ## Making database changes
 
