@@ -3,6 +3,7 @@ import { hydrateRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
+import { AuthProvider } from './auth'
 import { routes } from './routes'
 import { InitialProvider, matchScreen, type InitialState } from './ssr'
 
@@ -20,9 +21,11 @@ async function start() {
     document.getElementById('root')!,
     <StrictMode>
       <InitialProvider state={initial}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <App />
-        </BrowserRouter>
+        <AuthProvider user={initial?.user ?? null}>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
       </InitialProvider>
     </StrictMode>,
   )

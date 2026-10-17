@@ -85,7 +85,26 @@ input[type=range] { accent-color: var(--green); }
 .header-icon { position: relative; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--ink); border: 0; background: transparent; }
 .header-icon:hover { background: var(--soft); color: var(--ink); }
 .count { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.me-chip { width: 40px; height: 40px; margin: 0 6px; border-radius: 50%; background: var(--cream); color: var(--cream-ink); font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.me-chip { width: 40px; height: 40px; margin: 0 6px; padding: 0; border: 0; border-radius: 50%; background: var(--cream); color: var(--cream-ink); font: inherit; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none; overflow: hidden; cursor: pointer; }
+.me-chip:hover, .me-chip[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--green-soft); }
+.me-chip-face { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; object-fit: cover; }
+.me-menu { position: relative; }
+.me-pop { position: absolute; right: 6px; top: calc(100% + 8px); z-index: 30; min-width: 220px; padding: 8px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.me-pop-name { padding: 8px 12px 10px; font-weight: 700; border-bottom: 1px solid var(--line-3); margin-bottom: 4px; }
+.me-pop-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.me-pop-item:hover { background: var(--bg); color: var(--ink); }
+.signin-btn { height: 46px; margin: 0 6px; padding: 0 18px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--surface); color: var(--ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; text-decoration: none; white-space: nowrap; }
+.signin-btn:hover { background: var(--soft); color: var(--ink); }
+
+/* Sign in */
+.signin { flex: 1; display: flex; align-items: center; justify-content: center; padding-top: calc(env(safe-area-inset-top) + 32px); padding-bottom: 32px; }
+.signin-card { width: 100%; max-width: 420px; padding: 32px 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.signin-card h1 { font-size: 26px; margin-top: 6px; }
+.signin-card p { margin: 0 0 10px; color: var(--muted); line-height: 1.5; }
+.signin-card small { color: var(--muted); font-size: 12.5px; }
+.signin-mark { width: 56px; height: 56px; border-radius: 16px; }
+.google-btn { width: 100%; height: 52px; padding: 0 20px; border: 1px solid #747775; border-radius: 14px; background: #fff; color: #1F1F1F; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 12px; text-decoration: none; }
+.google-btn:hover { background: #F7F8F8; color: #1F1F1F; }
 .sell-btn { height: 46px; padding: 0 20px; border-radius: 999px; background: var(--red); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .sell-btn:hover { color: #fff; background: #AD3415; }
 .section-nav { display: flex; gap: 4px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }

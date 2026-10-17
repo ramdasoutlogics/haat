@@ -13,13 +13,13 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from .auth import current_user, router as auth_router, session_user
 from .cache import Cache
 from .config import settings
 from .db import create_pool, create_redis
 
 BID_STEP = 500
 CATEGORIES = ["Cars", "Property", "Mobiles", "Tech", "Home", "Fashion", "Bikes", "Pets"]
-ME = settings.demo_user_id
 
 LISTING_COLS = """l.id, l.seller_id, l.title, l.category, l.format, l.price, l.buy_now, l.current_bid,
   l.bids_count, l.closes_at, l.location, l.distance_km, l.condition, l.featured, l.views, l.status, l.created_at"""
@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Haat API", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","), allow_methods=["*"], allow_headers=["*"])
+app.include_router(auth_router)
 
 
 def J(obj, status: int = 200) -> Response:
@@ -55,13 +56,15 @@ def cache(request: Request) -> Cache:
     return request.app.state.cache
 
 
-async def watched_ids(db: asyncpg.Pool | asyncpg.Connection) -> set[int]:
-    return {r[0] for r in await db.fetch("SELECT listing_id FROM watches WHERE user_id = $1", ME)}
+async def watched_ids(db: asyncpg.Pool | asyncpg.Connection, uid: Optional[int]) -> set[int]:
+    if uid is None:
+        return set()
+    return {r[0] for r in await db.fetch("SELECT listing_id FROM watches WHERE user_id = $1", uid)}
 
 
-def personalize(listing: dict, watched: set[int]) -> dict:
+def personalize(listing: dict, watched: set[int], uid: Optional[int]) -> dict:
     listing["watched"] = listing["id"] in watched
-    listing["mine"] = listing["seller_id"] == ME
+    listing["mine"] = uid is not None and listing["seller_id"] == uid
     return listing
 
 
@@ -107,6 +110,7 @@ async def list_listings(
     offset: int = Query(0, ge=0),
     db: asyncpg.Pool = Depends(pool),
     c: Cache = Depends(cache),
+    uid: Optional[int] = Depends(session_user),
 ):
     params = dict(q=q.strip().lower(), category=category, formats=formats, verified=verified, max_km=max_km,
                   min_price=min_price, max_price=max_price, sort=sort, limit=limit, offset=offset)
@@ -151,8 +155,8 @@ async def list_listings(
         return {"total": total, "items": rows}
 
     data = await c.get_or_set("listings", params, load)
-    w = await watched_ids(db)
-    data["items"] = [personalize(i, w) for i in data["items"]]
+    w = await watched_ids(db, uid)
+    data["items"] = [personalize(i, w, uid) for i in data["items"]]
     return J(data)
 
 
@@ -169,19 +173,21 @@ async def load_listing(db: asyncpg.Pool | asyncpg.Connection, lid: int) -> Optio
     return out
 
 
-async def listing_view(db: asyncpg.Pool, c: Cache, lid: int, count_view: bool = False) -> dict:
+async def listing_view(db: asyncpg.Pool, c: Cache, lid: int, uid: Optional[int], count_view: bool = False) -> dict:
     data = await c.get_or_set("listing", lid, lambda: load_listing(db, lid))
     if not data:
         raise HTTPException(404, "Listing not found")
     pending = await (c.add_view(lid) if count_view else c.pending_views(lid))
     data["views"] += pending
-    data["you_lead"] = data.pop("top_bidder") == ME
-    return personalize(data, await watched_ids(db))
+    top = data.pop("top_bidder")
+    data["you_lead"] = uid is not None and top == uid
+    return personalize(data, await watched_ids(db, uid), uid)
 
 
 @app.get("/api/listings/{lid}")
-async def get_listing(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache)):
-    return J(await listing_view(db, c, lid, count_view=True))
+async def get_listing(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
+                      uid: Optional[int] = Depends(session_user)):
+    return J(await listing_view(db, c, lid, uid, count_view=True))
 
 
 class NewListing(BaseModel):
@@ -197,7 +203,8 @@ class NewListing(BaseModel):
 
 
 @app.post("/api/listings")
-async def create_listing(body: NewListing, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache)):
+async def create_listing(body: NewListing, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
+                         me: int = Depends(current_user)):
     if body.category not in CATEGORIES:
         raise HTTPException(422, "Unknown category")
     if body.format != "free" and body.price < 1:
@@ -206,20 +213,21 @@ async def create_listing(body: NewListing, db: asyncpg.Pool = Depends(pool), c: 
     lid = await db.fetchval(
         """INSERT INTO listings (seller_id, title, category, format, price, buy_now, closes_at, location,
            condition, specs, description) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11) RETURNING id""",
-        ME, body.title.strip(), body.category, body.format, 0 if body.format == "free" else body.price,
+        me, body.title.strip(), body.category, body.format, 0 if body.format == "free" else body.price,
         body.buy_now if body.format == "auction" else None, closes, body.location, body.condition,
         [{"k": "Condition", "v": body.condition}], body.description.strip())
     await c.invalidate()
-    return J(await listing_view(db, c, lid), status=201)
+    return J(await listing_view(db, c, lid, me), status=201)
 
 
 @app.post("/api/listings/{lid}/watch")
-async def toggle_watch(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache)):
+async def toggle_watch(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
+                       me: int = Depends(current_user)):
     deleted = await db.fetchval(
-        "WITH d AS (DELETE FROM watches WHERE user_id = $1 AND listing_id = $2 RETURNING 1) SELECT COUNT(*) FROM d", ME, lid)
+        "WITH d AS (DELETE FROM watches WHERE user_id = $1 AND listing_id = $2 RETURNING 1) SELECT COUNT(*) FROM d", me, lid)
     if not deleted:
         try:
-            await db.execute("INSERT INTO watches VALUES ($1, $2) ON CONFLICT DO NOTHING", ME, lid)
+            await db.execute("INSERT INTO watches VALUES ($1, $2) ON CONFLICT DO NOTHING", me, lid)
         except asyncpg.ForeignKeyViolationError:
             raise HTTPException(404, "Listing not found")
     await c.invalidate()
@@ -231,7 +239,8 @@ class Amount(BaseModel):
 
 
 @app.post("/api/listings/{lid}/bids")
-async def place_bid(lid: int, body: Amount, request: Request, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache)):
+async def place_bid(lid: int, body: Amount, request: Request, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
+                    me: int = Depends(current_user)):
     async with db.acquire() as conn, conn.transaction():
         # Row lock: two bids at the same moment are applied one after the other.
         l = await conn.fetchrow("SELECT * FROM listings WHERE id = $1 FOR UPDATE", lid)
@@ -239,55 +248,56 @@ async def place_bid(lid: int, body: Amount, request: Request, db: asyncpg.Pool =
             raise HTTPException(404, "Listing not found")
         if l["format"] != "auction":
             raise HTTPException(400, "This listing is not an auction")
-        if l["seller_id"] == ME:
+        if l["seller_id"] == me:
             raise HTTPException(400, "You can't bid on your own listing")
         if l["closes_at"] and l["closes_at"] <= now():
             raise HTTPException(400, "This auction has closed")
         if body.amount < min_bid(l):
             raise HTTPException(400, f"Minimum bid is ₹{min_bid(l):,}")
         prev = await conn.fetchval("SELECT user_id FROM bids WHERE listing_id = $1 ORDER BY amount DESC LIMIT 1", lid)
-        await conn.execute("INSERT INTO bids (listing_id, user_id, amount) VALUES ($1, $2, $3)", lid, ME, body.amount)
+        await conn.execute("INSERT INTO bids (listing_id, user_id, amount) VALUES ($1, $2, $3)", lid, me, body.amount)
         await conn.execute("UPDATE listings SET current_bid = $1, bids_count = bids_count + 1 WHERE id = $2", body.amount, lid)
     await c.invalidate()
-    if prev and prev != ME:
+    if prev and prev != me:
         await request.app.state.jobs.enqueue_job("notify_outbid", prev, lid, body.amount)
     await request.app.state.jobs.enqueue_job("notify_new_bid", l["seller_id"], lid, body.amount)
-    return J(await listing_view(db, c, lid))
+    return J(await listing_view(db, c, lid, me))
 
 
-async def chat_for(conn, lid: int, seller_id: int) -> int:
+async def chat_for(conn, lid: int, buyer_id: int, seller_id: int) -> int:
     return await conn.fetchval(
         """INSERT INTO chats (listing_id, buyer_id, seller_id) VALUES ($1, $2, $3)
            ON CONFLICT (listing_id, buyer_id) DO UPDATE SET seller_id = EXCLUDED.seller_id RETURNING id""",
-        lid, ME, seller_id)
+        lid, buyer_id, seller_id)
 
 
-async def active_listing(conn, lid: int):
+async def active_listing(conn, lid: int, me: int):
     l = await conn.fetchrow("SELECT id, seller_id, status FROM listings WHERE id = $1", lid)
     if not l or l["status"] != "active":
         raise HTTPException(404, "Listing not found")
-    if l["seller_id"] == ME:
+    if l["seller_id"] == me:
         raise HTTPException(400, "This is your own listing")
     return l
 
 
 @app.post("/api/listings/{lid}/offers")
-async def make_offer(lid: int, body: Amount, request: Request, db: asyncpg.Pool = Depends(pool)):
+async def make_offer(lid: int, body: Amount, request: Request, db: asyncpg.Pool = Depends(pool),
+                     me: int = Depends(current_user)):
     async with db.acquire() as conn, conn.transaction():
-        l = await active_listing(conn, lid)
-        cid = await chat_for(conn, lid, l["seller_id"])
+        l = await active_listing(conn, lid, me)
+        cid = await chat_for(conn, lid, me, l["seller_id"])
         await conn.execute(
             "INSERT INTO messages (chat_id, sender_id, kind, body, amount, offer_status, read) "
-            "VALUES ($1, $2, 'offer', 'Offer via Haat Pay', $3, 'pending', TRUE)", cid, ME, body.amount)
+            "VALUES ($1, $2, 'offer', 'Offer via Haat Pay', $3, 'pending', TRUE)", cid, me, body.amount)
     await request.app.state.jobs.enqueue_job("notify_offer", l["seller_id"], lid, body.amount)
     return J({"chat_id": cid})
 
 
 @app.post("/api/listings/{lid}/chat")
-async def open_chat(lid: int, db: asyncpg.Pool = Depends(pool)):
+async def open_chat(lid: int, db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     async with db.acquire() as conn:
-        l = await active_listing(conn, lid)
-        return J({"chat_id": await chat_for(conn, lid, l["seller_id"])})
+        l = await active_listing(conn, lid, me)
+        return J({"chat_id": await chat_for(conn, lid, me, l["seller_id"])})
 
 
 # ---------- Chats ----------
@@ -309,15 +319,15 @@ ORDER BY m.created_at DESC NULLS LAST
 """
 
 
-def chat_row(r) -> dict:
+def chat_row(r, me: int) -> dict:
     if r["m_kind"] is None:
         last = ""
     elif r["m_kind"] == "offer":
         last = f"Offer: ₹{r['m_amount']:,}"
     else:
-        last = ("You: " if r["m_sender"] == ME else "") + r["m_body"]
+        last = ("You: " if r["m_sender"] == me else "") + r["m_body"]
     return {
-        "id": r["id"], "role": "buying" if r["buyer_id"] == ME else "selling",
+        "id": r["id"], "role": "buying" if r["buyer_id"] == me else "selling",
         "other": {"id": r["u_id"], "name": r["u_name"], "initials": r["u_initials"], "verified": r["u_verified"],
                   "positive": r["u_positive"], "ratings": r["u_ratings"], "reply_time": r["u_reply_time"]},
         "listing": {"id": r["l_id"], "title": r["l_title"], "category": r["l_category"], "format": r["l_format"],
@@ -327,20 +337,20 @@ def chat_row(r) -> dict:
 
 
 @app.get("/api/chats")
-async def list_chats(db: asyncpg.Pool = Depends(pool)):
-    rows = await db.fetch(CHAT_LIST_SQL.format(extra=""), ME)
-    return J([chat_row(r) for r in rows])
+async def list_chats(db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
+    rows = await db.fetch(CHAT_LIST_SQL.format(extra=""), me)
+    return J([chat_row(r, me) for r in rows])
 
 
-async def chat_detail(conn, cid: int) -> dict:
-    r = await conn.fetchrow(CHAT_LIST_SQL.format(extra="AND ch.id = $2"), ME, cid)
+async def chat_detail(conn, cid: int, me: int) -> dict:
+    r = await conn.fetchrow(CHAT_LIST_SQL.format(extra="AND ch.id = $2"), me, cid)
     if not r:
         raise HTTPException(404, "Chat not found")
-    await conn.execute("UPDATE messages SET read = TRUE WHERE chat_id = $1 AND sender_id <> $2 AND NOT read", cid, ME)
-    out = chat_row(r)
+    await conn.execute("UPDATE messages SET read = TRUE WHERE chat_id = $1 AND sender_id <> $2 AND NOT read", cid, me)
+    out = chat_row(r, me)
     out["unread"] = 0
     out["messages"] = [
-        {"id": m["id"], "mine": m["sender_id"] == ME, "kind": m["kind"], "body": m["body"], "amount": m["amount"],
+        {"id": m["id"], "mine": m["sender_id"] == me, "kind": m["kind"], "body": m["body"], "amount": m["amount"],
          "offer_status": m["offer_status"], "created_at": m["created_at"]}
         for m in await conn.fetch("SELECT * FROM messages WHERE chat_id = $1 ORDER BY id", cid)
     ]
@@ -348,9 +358,9 @@ async def chat_detail(conn, cid: int) -> dict:
 
 
 @app.get("/api/chats/{cid}")
-async def get_chat(cid: int, db: asyncpg.Pool = Depends(pool)):
+async def get_chat(cid: int, db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     async with db.acquire() as conn:
-        return J(await chat_detail(conn, cid))
+        return J(await chat_detail(conn, cid, me))
 
 
 class Text(BaseModel):
@@ -358,15 +368,15 @@ class Text(BaseModel):
 
 
 @app.post("/api/chats/{cid}/messages")
-async def send_message(cid: int, body: Text, db: asyncpg.Pool = Depends(pool)):
+async def send_message(cid: int, body: Text, db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     text = body.body.strip()
     if not text:
         raise HTTPException(422, "Message is empty")
     async with db.acquire() as conn:
-        if not await conn.fetchval("SELECT 1 FROM chats WHERE id = $1 AND (buyer_id = $2 OR seller_id = $2)", cid, ME):
+        if not await conn.fetchval("SELECT 1 FROM chats WHERE id = $1 AND (buyer_id = $2 OR seller_id = $2)", cid, me):
             raise HTTPException(404, "Chat not found")
-        await conn.execute("INSERT INTO messages (chat_id, sender_id, body, read) VALUES ($1, $2, $3, TRUE)", cid, ME, text)
-        return J(await chat_detail(conn, cid), status=201)
+        await conn.execute("INSERT INTO messages (chat_id, sender_id, body, read) VALUES ($1, $2, $3, TRUE)", cid, me, text)
+        return J(await chat_detail(conn, cid, me), status=201)
 
 
 class OfferAction(BaseModel):
@@ -375,15 +385,15 @@ class OfferAction(BaseModel):
 
 
 @app.post("/api/messages/{mid}/respond")
-async def respond_offer(mid: int, body: OfferAction, db: asyncpg.Pool = Depends(pool)):
+async def respond_offer(mid: int, body: OfferAction, db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     async with db.acquire() as conn, conn.transaction():
         m = await conn.fetchrow(
             """SELECT m.* FROM messages m JOIN chats ch ON ch.id = m.chat_id
                WHERE m.id = $1 AND m.kind = 'offer' AND (ch.buyer_id = $2 OR ch.seller_id = $2) FOR UPDATE OF m""",
-            mid, ME)
+            mid, me)
         if not m:
             raise HTTPException(404, "Offer not found")
-        if m["sender_id"] == ME:
+        if m["sender_id"] == me:
             raise HTTPException(400, "You can't respond to your own offer")
         if m["offer_status"] != "pending":
             raise HTTPException(400, "This offer was already answered")
@@ -393,42 +403,43 @@ async def respond_offer(mid: int, body: OfferAction, db: asyncpg.Pool = Depends(
             await conn.execute("UPDATE messages SET offer_status = 'countered' WHERE id = $1", mid)
             await conn.execute(
                 "INSERT INTO messages (chat_id, sender_id, kind, body, amount, offer_status, read) "
-                "VALUES ($1, $2, 'offer', 'Counter-offer', $3, 'pending', TRUE)", m["chat_id"], ME, body.amount)
+                "VALUES ($1, $2, 'offer', 'Counter-offer', $3, 'pending', TRUE)", m["chat_id"], me, body.amount)
         else:
             await conn.execute("UPDATE messages SET offer_status = $1 WHERE id = $2",
                                "accepted" if body.action == "accept" else "declined", mid)
-        return J(await chat_detail(conn, m["chat_id"]))
+        return J(await chat_detail(conn, m["chat_id"], me))
 
 
 # ---------- Me ----------
 
 @app.get("/api/me")
-async def me(db: asyncpg.Pool = Depends(pool)):
+async def get_me(db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     async with db.acquire() as conn:
-        user = dict(await conn.fetchrow(f"SELECT {USER_COLS} FROM users WHERE id = $1", ME))
-        w = await watched_ids(conn)
-        mine = [personalize(dict(r), w) for r in await conn.fetch(
+        user = dict(await conn.fetchrow(f"SELECT {USER_COLS}, avatar_url FROM users WHERE id = $1", me))
+        w = await watched_ids(conn, me)
+        mine = [personalize(dict(r), w, me) for r in await conn.fetch(
             f"""SELECT {LISTING_COLS},
                   (SELECT COUNT(*) FROM watches x WHERE x.listing_id = l.id) AS watchers,
                   (SELECT COUNT(*) FROM chats x WHERE x.listing_id = l.id) AS chats
-                FROM listings l WHERE l.seller_id = $1 AND l.status = 'active' ORDER BY l.created_at DESC""", ME)]
-        watching = [personalize(dict(r), w) for r in await conn.fetch(
-            f"SELECT {LISTING_COLS} FROM listings l JOIN watches x ON x.listing_id = l.id WHERE x.user_id = $1", ME)]
-        bought = [personalize(dict(r), w) for r in await conn.fetch(
+                FROM listings l WHERE l.seller_id = $1 AND l.status = 'active' ORDER BY l.created_at DESC""", me)]
+        watching = [personalize(dict(r), w, me) for r in await conn.fetch(
+            f"SELECT {LISTING_COLS} FROM listings l JOIN watches x ON x.listing_id = l.id WHERE x.user_id = $1", me)]
+        bought = [personalize(dict(r), w, me) for r in await conn.fetch(
             f"""SELECT {LISTING_COLS}, p.status AS purchase_status, u.name AS seller_name
                 FROM listings l JOIN purchases p ON p.listing_id = l.id JOIN users u ON u.id = l.seller_id
-                WHERE p.user_id = $1""", ME)]
+                WHERE p.user_id = $1""", me)]
         unread = await conn.fetchval(
             """SELECT COUNT(*) FROM messages m JOIN chats ch ON ch.id = m.chat_id
-               WHERE (ch.buyer_id = $1 OR ch.seller_id = $1) AND m.sender_id <> $1 AND NOT m.read""", ME)
-        notes = await conn.fetchval("SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND NOT read", ME)
-    return J({"user": user, "earned": 46200, "listings": mine, "watching": watching, "bought": bought,
+               WHERE (ch.buyer_id = $1 OR ch.seller_id = $1) AND m.sender_id <> $1 AND NOT m.read""", me)
+        notes = await conn.fetchval("SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND NOT read", me)
+    earned = 46200 if me == settings.demo_user_id else 0  # demo figure until payouts exist
+    return J({"user": user, "earned": earned, "listings": mine, "watching": watching, "bought": bought,
               "unread_chats": unread, "unread_notifications": notes})
 
 
 @app.get("/api/notifications")
-async def notifications(db: asyncpg.Pool = Depends(pool)):
+async def notifications(db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
     rows = await db.fetch(
-        "SELECT id, text, listing_id, read, created_at FROM notifications WHERE user_id = $1 ORDER BY id DESC LIMIT 50", ME)
-    await db.execute("UPDATE notifications SET read = TRUE WHERE user_id = $1 AND NOT read", ME)
+        "SELECT id, text, listing_id, read, created_at FROM notifications WHERE user_id = $1 ORDER BY id DESC LIMIT 50", me)
+    await db.execute("UPDATE notifications SET read = TRUE WHERE user_id = $1 AND NOT read", me)
     return J([dict(r) for r in rows])

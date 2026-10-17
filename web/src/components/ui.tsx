@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Listing } from '../api'
+import { goSignIn, useAuth } from '../auth'
 import { Icon, type IconName } from '../icons'
 import { ago, badgeFor, cx, priceOf, thumbFor, timeLeft } from '../lib'
 import { useNow } from '../ssr'
@@ -53,11 +54,13 @@ export function WatchButton({ listing, className, size = 17, onChange }: {
   onChange?: (watched: boolean) => void
 }) {
   const [on, setOn] = useState(listing.watched)
+  const { user } = useAuth()
   useEffect(() => setOn(listing.watched), [listing.watched])
   if (listing.mine) return null
   const toggle = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!user) return goSignIn()
     const next = !on
     setOn(next)
     try {

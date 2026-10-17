@@ -8,6 +8,7 @@
  */
 import { createContext, lazy, useContext, useEffect, useRef, useState, type ComponentType } from 'react'
 import { matchRoutes, useLocation, useParams } from 'react-router-dom'
+import type { SessionUser } from './api'
 
 export interface LoadArgs {
   params: Record<string, string | undefined>
@@ -26,6 +27,7 @@ export interface InitialState {
   data: unknown
   error: string | null
   now: number
+  user: SessionUser | null
 }
 
 export function lazyScreen(importer: () => Promise<ScreenModule>) {
@@ -43,13 +45,14 @@ export function lazyScreen(importer: () => Promise<ScreenModule>) {
   return { Screen, preload, get mod() { return mod } }
 }
 
-export type ScreenRoute = { path: string; file: string; screen: ReturnType<typeof lazyScreen> }
+/** `auth`: only for signed-in people; everyone else sees the sign-in screen. */
+export type ScreenRoute = { path: string; file: string; screen: ReturnType<typeof lazyScreen>; auth?: boolean }
 
 export function matchScreen(routes: ScreenRoute[], pathname: string) {
   const m = matchRoutes(routes, pathname)
   if (!m) return null
   const last = m[m.length - 1]
-  return { screen: last.route.screen, file: last.route.file, params: last.params as Record<string, string | undefined> }
+  return { screen: last.route.screen, file: last.route.file, auth: !!last.route.auth, params: last.params as Record<string, string | undefined> }
 }
 
 // ---- initial data handed from the server to the first render ----

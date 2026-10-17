@@ -10,6 +10,15 @@ export interface User {
   positive: number
   ratings: number
   reply_time: string | null
+  avatar_url?: string | null
+}
+
+/** Who is signed in (from the session cookie). */
+export interface SessionUser {
+  id: number
+  name: string
+  initials: string
+  avatar_url: string | null
 }
 
 export interface Listing {
@@ -109,16 +118,37 @@ let base = ''
 export const setApiBase = (url: string) => {
   base = url.replace(/\/$/, '')
 }
+// During server rendering, the visitor's cookie is passed on so the API knows who is signed in.
+let extraHeaders: () => Record<string, string> = () => ({})
+export const setRequestHeaders = (fn: () => Record<string, string>) => {
+  extraHeaders = fn
+}
+
+/** Google sign-in, then back to `next` (the current page by default). */
+export const signInUrl = (next?: string) => {
+  const here = next ?? (typeof window === 'undefined' ? '/' : window.location.pathname + window.location.search)
+  return `/api/auth/google/login?next=${encodeURIComponent(here)}`
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${base}/api${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders(), ...(init?.headers ?? {}) },
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    // Signed out (or the session ended) while doing something: sign in, then come back here.
+    if (res.status === 401 && init?.method === 'POST' && typeof window !== 'undefined') window.location.assign(signInUrl())
     const detail = data?.detail
-    throw new Error(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.')
+    throw new ApiError(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.', res.status)
   }
   return data as T
 }
@@ -163,6 +193,8 @@ export const api = {
   send: (id: number, body: string) => post<Chat>(`/chats/${id}/messages`, { body }),
   respond: (messageId: number, action: 'accept' | 'decline' | 'counter', amount?: number) =>
     post<Chat>(`/messages/${messageId}/respond`, { action, amount }),
+  session: () => req<{ user: SessionUser | null; google: boolean }>('/auth/session'),
+  logout: () => post<{ ok: boolean }>('/auth/logout'),
   me: () => req<Me>('/me'),
   notifications: () => req<Notification[]>('/notifications'),
 }
