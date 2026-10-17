@@ -93,7 +93,16 @@ async def seed(conn: asyncpg.Connection) -> None:
     await conn.executemany(
         "INSERT INTO listings VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16,$17,$18,$19)",
         _listings(t))
-    await conn.executemany("INSERT INTO watches VALUES ($1,$2)", [(1, 4), (1, 11), (1, 12), (1, 9)])
+    # Watchlist, with the price each item had when saved (the MacBook has dropped since).
+    await conn.executemany(
+        "INSERT INTO watches (user_id, listing_id, saved_price, created_at) VALUES ($1,$2,$3,$4)",
+        [(1, 4, 81000, t - timedelta(days=2)), (1, 11, 540000, t - timedelta(days=1)),
+         (1, 12, 38000, t - timedelta(hours=20)), (1, 9, 69900, t - timedelta(hours=6)),
+         (1, 6, 13000, t - timedelta(hours=3))])
+    # Ram leads on the dining set and has been outbid on the camera.
+    await conn.executemany("INSERT INTO bids (listing_id, user_id, amount, created_at) VALUES ($1,$2,$3,$4)",
+                           [(6, 1, 14500, t - timedelta(hours=1)), (12, 1, 41500, t - timedelta(hours=4)),
+                            (12, 3, 42000, t - timedelta(hours=2))])
     await conn.execute("INSERT INTO purchases VALUES (1, 13, 'Collected')")
     await conn.executemany("INSERT INTO chats VALUES ($1,$2,$3,$4)",
                            [(1, 1, 3, 1), (2, 6, 1, 2), (3, 11, 1, 5), (4, 2, 6, 1), (5, 4, 1, 2)])

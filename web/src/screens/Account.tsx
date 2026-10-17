@@ -102,17 +102,13 @@ export default function Account() {
     const restore = () => setData((d) => d && (d.watching.some((x) => x.id === l.id) ? d : { ...d, watching: [...d.watching.slice(0, idx), { ...l, watched: true }, ...d.watching.slice(idx)] }))
     setData((d) => d && { ...d, watching: d.watching.filter((x) => x.id !== l.id) })
     try {
-      const r = await api.toggleWatch(l.id)
-      if (r.watched) {
-        // It was already removed elsewhere, so the toggle re-added it: toggle once more.
-        await api.toggleWatch(l.id)
-      }
+      await api.watch(l.id, false)
       setToast({
         text: 'Removed from watchlist',
         undo: async () => {
           setToast(null)
           restore()
-          try { await api.toggleWatch(l.id) } catch { setData((d) => d && { ...d, watching: d.watching.filter((x) => x.id !== l.id) }) }
+          try { await api.watch(l.id, true, { saved_price: l.saved_price, watched_at: l.watched_at }) } catch { setData((d) => d && { ...d, watching: d.watching.filter((x) => x.id !== l.id) }) }
         },
       })
     } catch {
@@ -199,6 +195,7 @@ export default function Account() {
 
   const MENU: { label: string; icon: IconName; note?: string | number; to?: string; onClick?: () => void }[] = [
     { label: 'Notifications', icon: 'bell', note: newNotes ? `${newNotes} new` : '', onClick: () => setShowNotes(true) },
+    { label: 'Watchlist', icon: 'heart', note: data.watching.length || '', to: '/watchlist' },
     { label: 'Saved searches', icon: 'search', to: '/search' },
     { label: 'Boost my ads', icon: 'zap', onClick: soon('Boosting is') },
     { label: 'Payouts & UPI', icon: 'wallet', onClick: soon('Payouts are') },
@@ -208,7 +205,7 @@ export default function Account() {
 
   const NAV: { id?: Tab; label: string; icon: IconName; count?: number | string; to?: string; onClick?: () => void }[] = [
     { id: 'ads', label: 'My listings', icon: 'tag', count: data.listings.length },
-    { id: 'watch', label: 'Watchlist', icon: 'heart', count: data.watching.length },
+    { label: 'Watchlist', icon: 'heart', count: data.watching.length, to: '/watchlist' },
     { id: 'bought', label: 'Bought & won', icon: 'bag', count: data.bought.length || '' },
     { id: 'notes', label: 'Notifications', icon: 'bell', count: newNotes ? `${newNotes} new` : '' },
     { label: 'Saved searches', icon: 'search', to: '/search' },

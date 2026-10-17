@@ -61,7 +61,7 @@ export function WatchButton({ listing, className, size = 17, onChange }: {
     const next = !on
     setOn(next)
     try {
-      const r = await api.toggleWatch(listing.id)
+      const r = await api.watch(listing.id, next)
       setOn(r.watched)
       onChange?.(r.watched)
     } catch {
