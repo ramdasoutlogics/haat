@@ -1,0 +1,91 @@
+/* Watchlist: phone list and desktop grid */
+.wl { display: flex; flex-direction: column; flex: 1; }
+
+/* ---------- Phone header ---------- */
+.wl-top { position: sticky; top: 0; z-index: 20; padding: calc(env(safe-area-inset-top) + 16px) 16px 12px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+.wl-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.wl-top h1 { font-size: 26px; letter-spacing: -0.5px; }
+.wl-top .muted { font-size: 13px; }
+.wl-sort-m { position: relative; flex: none; display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 10px; margin-right: -10px; color: var(--green); }
+.wl-sort-m select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font-weight: 700; font-size: 14px; padding: 0; cursor: pointer; text-align: right; }
+.wl-sort-m select:focus { outline: none; }
+.wl-sort-m:focus-within { outline: 2px solid var(--green); border-radius: 10px; }
+.wl-sort-m svg { pointer-events: none; }
+.wl-chips { margin: 0 -16px; padding: 0 16px 2px; }
+.wl-chips .chip { display: inline-flex; align-items: center; gap: 6px; }
+.wl-chip-n { font-weight: 600; opacity: .6; }
+
+.wl .wl-body { padding-top: 12px; padding-bottom: 24px; padding-left: 16px; padding-right: 16px; }
+.wl-grid { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wl-empty { background: #fff; border: 1px solid var(--line); border-radius: 18px; }
+.wl-empty .empty span { max-width: 340px; line-height: 1.5; }
+.wl .toast { bottom: calc(104px + env(safe-area-inset-bottom)); }
+
+/* ---------- Card: a row on phones, a tile on desktop ---------- */
+.wcard { position: relative; display: flex; gap: 12px; padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 16px; height: 100%; }
+.wcard-img { flex: none; display: block; }
+.wcard-img .thumb { width: 96px; height: 96px; border-radius: 12px; }
+.wcard-flag { position: absolute; left: 6px; top: 6px; font-size: 10px; font-weight: 800; letter-spacing: .4px; padding: 3px 6px; border-radius: 5px; background: var(--ink); color: #fff; }
+.wcard-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; padding: 2px 36px 2px 0; }
+.wcard-price { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wcard-price strong { font-size: 19px; letter-spacing: -0.3px; }
+.wl-drop { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; padding: 3px 7px; border-radius: 6px; background: var(--green-soft); color: var(--green); }
+.wl-up { font-size: 12px; font-weight: 600; color: var(--muted); }
+.wcard-title { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--ink); text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wcard-title:hover { color: var(--green); }
+/* The whole card opens the listing; the heart and button sit above this layer. */
+.wcard-title::after { content: ''; position: absolute; inset: 0; border-radius: 16px; }
+.wcard-status { display: flex; gap: 6px; flex-wrap: wrap; }
+.wl-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--soft); color: #3E4A43; white-space: nowrap; }
+.wl-tag.red { background: var(--red-soft); color: var(--red-ink); }
+.wl-tag.green { background: var(--green-soft); color: var(--green); }
+.wl-tag.cream { background: var(--cream); color: var(--cream-ink); }
+.wl-tag.gray { background: var(--seg); color: var(--muted); }
+.wcard-meta { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.wcard-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.wcard-saved { font-size: 12px; color: var(--muted); }
+.wcard-cta { position: relative; z-index: 1; height: 38px; }
+.wcard-remove { position: absolute; z-index: 1; right: 4px; top: 4px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; display: flex; align-items: center; justify-content: center; }
+.wcard-remove::before { content: ''; position: absolute; width: 34px; height: 34px; border-radius: 50%; background: var(--red-soft); transition: transform .12s; }
+.wcard-remove svg { position: relative; }
+.wcard-remove:active::before { transform: scale(.9); }
+.wcard.closed .wcard-img .thumb { filter: grayscale(.8); opacity: .7; }
+.wcard.closed .wcard-price strong { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+.wl-sk-title { display: block; height: 52px; width: 60%; border-radius: 12px; }
+.wl-sk-card { display: block; height: 118px; border-radius: 16px; }
+
+/* ---------- Desktop ---------- */
+@media (min-width: 900px) {
+  .wl-d-head { padding-top: 24px; display: flex; flex-direction: column; gap: 18px; }
+  .wl-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .wl-title { display: flex; flex-direction: column; gap: 4px; }
+  .wl-title h1 { font-size: 34px; letter-spacing: -0.8px; }
+  .wl-title .muted { font-size: 15px; }
+  .wl-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+  .wl-stat { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .wl-stat > span { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .wl-stat strong { font-size: 32px; letter-spacing: -0.6px; line-height: 1.1; }
+  .wl-stat em { font-style: normal; font-size: 13px; color: var(--green); font-weight: 600; }
+  .wl-stat em.bad { color: var(--red-ink); }
+  .wl-chips { margin: 0; padding: 0; flex-wrap: wrap; overflow: visible; }
+  .wl-chips .chip { height: 40px; padding: 0 16px; font-size: 14px; }
+
+  .wl .wl-body { padding: 20px 24px 72px; }
+  .wl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .wl-empty { border-style: dashed; border-color: var(--line-2); }
+  .wl .toast { bottom: 32px; }
+
+  .wcard { flex-direction: column; gap: 0; padding: 0; border-radius: 18px; overflow: hidden; }
+  .wcard-img .thumb { width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: 0; }
+  .wcard-img .thumb svg { width: 60px; height: 60px; }
+  .wcard-flag { left: 12px; top: 12px; font-size: 11px; padding: 4px 8px; border-radius: 6px; }
+  .wcard-body { padding: 14px 16px 16px; gap: 7px; }
+  .wcard-price strong { font-size: 22px; }
+  .wcard-title { font-size: 15px; }
+  .wcard-title::after { border-radius: 18px; }
+  .wcard-meta { font-size: 13px; }
+  .wcard-foot { padding-top: 6px; }
+  .wcard-remove { right: 10px; top: 10px; }
+  .wcard-remove::before { width: 40px; height: 40px; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+}

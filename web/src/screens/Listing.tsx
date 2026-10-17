@@ -120,7 +120,7 @@ export default function Listing() {
     const was = l.watched
     setListing({ ...l, watched: !was, watchers: (l.watchers ?? 0) + (was ? -1 : 1) })
     try {
-      const r = await api.toggleWatch(l.id)
+      const r = await api.watch(l.id, !was)
       setListing({ ...l, watched: r.watched, watchers: (l.watchers ?? 0) + (r.watched === was ? 0 : r.watched ? 1 : -1) })
       flash(r.watched ? 'Added to your watchlist' : 'Removed from your watchlist')
     } catch {

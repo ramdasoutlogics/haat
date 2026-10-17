@@ -3,6 +3,7 @@
 @import "./styles/listing.css";
 @import "./styles/sell.css";
 @import "./styles/account.css";
+@import "./styles/watchlist.css";
 @import "./styles/messages.css";
 /* Haat design tokens and shared styles. Mobile first; desktop layout from 900px. */
 :root {

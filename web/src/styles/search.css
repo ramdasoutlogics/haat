@@ -26,6 +26,9 @@
 
 .srch-list { padding: 4px 16px 84px; }
 .srch-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.srch-row { position: relative; }
+.srch-row-watch.watch { left: 74px; right: auto; top: 10px; width: 40px; height: 40px; }
+.srch-row-watch .watch-dot { width: 28px; height: 28px; }
 .srch-list .skeletons, .srch-list .error-box { padding-left: 0; padding-right: 0; margin-left: 0; margin-right: 0; }
 
 .srch-more { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 0 8px; font-size: 13px; }

@@ -53,7 +53,9 @@ function Header({ chats, notes, initials }: { chats: number; notes: number; init
           <button type="submit">Search</button>
         </form>
         <nav aria-label="Account" className="header-nav">
-          <Link to="/account?tab=watch" className="header-icon" aria-label="Watchlist"><Icon name="heart" size={22} width={1.8} /></Link>
+          <Link to="/watchlist" className="header-icon" aria-label="Watchlist" aria-current={location.pathname === '/watchlist' ? 'page' : undefined}>
+            <Icon name="heart" size={22} width={1.8} fill={location.pathname === '/watchlist' ? '#C43D19' : 'none'} stroke={location.pathname === '/watchlist' ? '#C43D19' : 'currentColor'} />
+          </Link>
           <Link to="/chats" className="header-icon" aria-label={`Messages, ${chats} unread`}>
             <Icon name="chat" size={22} width={1.8} />
             {chats > 0 && <span className="count">{chats}</span>}
@@ -131,7 +133,10 @@ export default function App() {
   const { pathname } = useLocation()
   const counts = useCounts()
   const full = FULL_SCREEN.some((re) => re.test(pathname))
-  useEffect(() => window.scrollTo(0, 0), [pathname])
+  // Braces matter: returning scrollTo's result would hand React a non-function "cleanup" and blank the page.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
   return (
     <div className={cx('app', !full && 'has-tabs')}>
       <Header {...counts} />
