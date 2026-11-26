@@ -64,7 +64,7 @@ function MeMenu({ user }: { user: SessionUser }) {
         <div className="me-pop" role="menu">
           <span className="me-pop-name">{user.name}</span>
           <Link to="/account" role="menuitem" className="me-pop-item"><Icon name="user" size={18} />My account</Link>
-          <Link to="/account?tab=watch" role="menuitem" className="me-pop-item"><Icon name="heart" size={18} />Watchlist</Link>
+          <Link to="/watchlist" role="menuitem" className="me-pop-item"><Icon name="heart" size={18} />Watchlist</Link>
           <button type="button" role="menuitem" className="me-pop-item" onClick={signOut}><Icon name="logout" size={18} />Sign out</button>
         </div>
       )}
@@ -101,7 +101,9 @@ function Header({ chats, notes }: { chats: number; notes: number }) {
           <button type="submit">Search</button>
         </form>
         <nav aria-label="Account" className="header-nav">
-          <Link to="/account?tab=watch" className="header-icon" aria-label="Watchlist"><Icon name="heart" size={22} width={1.8} /></Link>
+          <Link to="/watchlist" className="header-icon" aria-label="Watchlist" aria-current={location.pathname === '/watchlist' ? 'page' : undefined}>
+            <Icon name="heart" size={22} width={1.8} fill={location.pathname === '/watchlist' ? '#C43D19' : 'none'} stroke={location.pathname === '/watchlist' ? '#C43D19' : 'currentColor'} />
+          </Link>
           <Link to="/chats" className="header-icon" aria-label={`Messages, ${chats} unread`}>
             <Icon name="chat" size={22} width={1.8} />
             {chats > 0 && <span className="count">{chats}</span>}
@@ -204,7 +206,10 @@ export default function App() {
   const signInError = useSignInError()
   const gated = !user && !!matchScreen(routes, pathname)?.auth // sign-in screen keeps the tab bar
   const full = !gated && FULL_SCREEN.some((re) => re.test(pathname))
-  useEffect(() => window.scrollTo(0, 0), [pathname])
+  // Braces matter: returning scrollTo's result would hand React a non-function "cleanup" and blank the page.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
   return (
     <div className={cx('app', !full && 'has-tabs')}>
       <Header {...counts} />

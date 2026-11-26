@@ -323,13 +323,18 @@ export default function Search() {
   )
 }
 
-/** Phone result row: the shared row, with distance/bids in the meta line. */
+/** Phone result row: the shared row, with distance/bids in the meta line and a heart on the photo. */
 function ResultRow({ listing: l }: { listing: Listing }) {
   const now = useNow()
   const meta = l.format === 'auction'
     ? `${l.location} · ${km(l.distance_km)} km · ${l.bids_count} bids`
     : `${l.location} · ${km(l.distance_km)} km · ${ago(l.created_at, now)}`
-  return <ListingRow listing={l} meta={meta} />
+  return (
+    <div className="srch-row">
+      <ListingRow listing={l} meta={meta} />
+      <WatchButton listing={l} className="srch-row-watch" size={15} />
+    </div>
+  )
 }
 
 /** Desktop list card (Web-Search). */

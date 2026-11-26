@@ -51,6 +51,11 @@ export interface Listing {
   min_bid?: number | null
   purchase_status?: string
   seller_name?: string
+  // watchlist only
+  watched_at?: string
+  saved_price?: number | null
+  seller_verified?: boolean
+  my_bid?: number | null
 }
 
 export interface Message {
@@ -146,7 +151,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     // Signed out (or the session ended) while doing something: sign in, then come back here.
-    if (res.status === 401 && init?.method === 'POST' && typeof window !== 'undefined') window.location.assign(signInUrl())
+    if (res.status === 401 && init?.method && init.method !== 'GET' && typeof window !== 'undefined') window.location.assign(signInUrl())
     const detail = data?.detail
     throw new ApiError(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.', res.status)
   }
@@ -184,7 +189,13 @@ export const api = {
     duration_days?: number
     location?: string
   }) => post<Listing>('/listings', body),
-  toggleWatch: (id: number) => post<{ watched: boolean }>(`/listings/${id}/watch`),
+  /** Add or remove; safe to repeat. `restore` puts back the original saved price and date (undo). */
+  watch: (id: number, on: boolean, restore?: { saved_price?: number | null; watched_at?: string }) =>
+    req<{ watched: boolean }>(`/listings/${id}/watch`, {
+      method: on ? 'PUT' : 'DELETE',
+      body: on && restore ? JSON.stringify(restore) : undefined,
+    }),
+  watchlist: () => req<Listing[]>('/watchlist'),
   bid: (id: number, amount: number) => post<Listing>(`/listings/${id}/bids`, { amount }),
   offer: (id: number, amount: number) => post<{ chat_id: number }>(`/listings/${id}/offers`, { amount }),
   openChat: (id: number) => post<{ chat_id: number }>(`/listings/${id}/chat`),

@@ -12,6 +12,7 @@ export const routes: ScreenRoute[] = [
   { path: '/sell', file: 'src/screens/Sell.tsx', screen: lazyScreen(() => import('./screens/Sell')), auth: true },
   { path: '/chats', file: 'src/screens/Messages.tsx', screen: messages, auth: true },
   { path: '/chats/:id', file: 'src/screens/Messages.tsx', screen: messages, auth: true },
+  { path: '/watchlist', file: 'src/screens/Watchlist.tsx', screen: lazyScreen(() => import('./screens/Watchlist')), auth: true },
   { path: '/account', file: 'src/screens/Account.tsx', screen: lazyScreen(() => import('./screens/Account')), auth: true },
   { path: '*', file: 'src/screens/NotFound.tsx', screen: lazyScreen(() => import('./screens/NotFound')) },
 ]

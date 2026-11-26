@@ -220,18 +220,63 @@ async def create_listing(body: NewListing, db: asyncpg.Pool = Depends(pool), c: 
     return J(await listing_view(db, c, lid, me), status=201)
 
 
-@app.post("/api/listings/{lid}/watch")
-async def toggle_watch(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
-                       me: int = Depends(current_user)):
-    deleted = await db.fetchval(
-        "WITH d AS (DELETE FROM watches WHERE user_id = $1 AND listing_id = $2 RETURNING 1) SELECT COUNT(*) FROM d", me, lid)
-    if not deleted:
-        try:
-            await db.execute("INSERT INTO watches VALUES ($1, $2) ON CONFLICT DO NOTHING", me, lid)
-        except asyncpg.ForeignKeyViolationError:
-            raise HTTPException(404, "Listing not found")
-    await c.invalidate()
-    return J({"watched": not deleted})
+class WatchRestore(BaseModel):
+    """Sent by "Undo" so a re-added item keeps its original saved price and date."""
+    saved_price: Optional[int] = Field(None, ge=0)
+    watched_at: Optional[datetime] = None
+
+
+@app.put("/api/listings/{lid}/watch")
+async def watch(lid: int, body: Optional[WatchRestore] = None, db: asyncpg.Pool = Depends(pool),
+                c: Cache = Depends(cache), me: int = Depends(current_user)):
+    """Add to the watchlist, keeping today's price so a later drop can be shown. Safe to repeat."""
+    body = body or WatchRestore()
+    added = await db.fetchval(
+        """INSERT INTO watches (user_id, listing_id, saved_price, created_at)
+           SELECT $1, id, COALESCE($3, current_bid, price), COALESCE($4, now()) FROM listings WHERE id = $2
+           ON CONFLICT DO NOTHING RETURNING 1""", me, lid, body.saved_price, body.watched_at)
+    if added:
+        await c.invalidate()  # cached listing pages show the watcher count
+    elif not await db.fetchval("SELECT 1 FROM listings WHERE id = $1", lid):
+        raise HTTPException(404, "Listing not found")
+    return J({"watched": True})
+
+
+@app.delete("/api/listings/{lid}/watch")
+async def unwatch(lid: int, db: asyncpg.Pool = Depends(pool), c: Cache = Depends(cache),
+                  me: int = Depends(current_user)):
+    """Remove from the watchlist. Safe to repeat."""
+    if await db.fetchval("DELETE FROM watches WHERE user_id = $1 AND listing_id = $2 RETURNING 1", me, lid):
+        await c.invalidate()
+    return J({"watched": False})
+
+
+WATCHLIST_SQL = f"""
+SELECT {LISTING_COLS}, w.created_at AS watched_at, w.saved_price,
+       u.name AS seller_name, u.verified AS seller_verified,
+       (SELECT COUNT(*) FROM watches x WHERE x.listing_id = l.id) AS watchers,
+       (SELECT MAX(amount) FROM bids b WHERE b.listing_id = l.id AND b.user_id = $1) AS my_bid,
+       (SELECT user_id FROM bids b WHERE b.listing_id = l.id ORDER BY amount DESC LIMIT 1) AS top_bidder
+FROM watches w JOIN listings l ON l.id = w.listing_id JOIN users u ON u.id = l.seller_id
+WHERE w.user_id = $1
+ORDER BY w.created_at DESC, l.id DESC
+"""
+
+
+async def watchlist_items(db: asyncpg.Pool | asyncpg.Connection, me: int) -> list[dict]:
+    items = []
+    for r in await db.fetch(WATCHLIST_SQL, me):
+        item = dict(r)
+        item["watched"] = True
+        item["mine"] = item["seller_id"] == me
+        item["you_lead"] = item.pop("top_bidder") == me
+        items.append(item)
+    return items
+
+
+@app.get("/api/watchlist")
+async def get_watchlist(db: asyncpg.Pool = Depends(pool), me: int = Depends(current_user)):
+    return J(await watchlist_items(db, me))
 
 
 class Amount(BaseModel):
@@ -422,8 +467,7 @@ async def get_me(db: asyncpg.Pool = Depends(pool), me: int = Depends(current_use
                   (SELECT COUNT(*) FROM watches x WHERE x.listing_id = l.id) AS watchers,
                   (SELECT COUNT(*) FROM chats x WHERE x.listing_id = l.id) AS chats
                 FROM listings l WHERE l.seller_id = $1 AND l.status = 'active' ORDER BY l.created_at DESC""", me)]
-        watching = [personalize(dict(r), w, me) for r in await conn.fetch(
-            f"SELECT {LISTING_COLS} FROM listings l JOIN watches x ON x.listing_id = l.id WHERE x.user_id = $1", me)]
+        watching = await watchlist_items(conn, me)
         bought = [personalize(dict(r), w, me) for r in await conn.fetch(
             f"""SELECT {LISTING_COLS}, p.status AS purchase_status, u.name AS seller_name
                 FROM listings l JOIN purchases p ON p.listing_id = l.id JOIN users u ON u.id = l.seller_id

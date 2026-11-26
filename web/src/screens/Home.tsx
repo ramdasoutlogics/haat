@@ -77,10 +77,15 @@ export default function Home() {
             Koramangala, Bengaluru
             <Icon name="down" size={16} stroke="#fff" width={2.2} />
           </button>
-          <Link to="/account" className="home-bell" aria-label="Notifications">
-            <Icon name="bell" size={22} stroke="#fff" width={1.8} />
-            <span className="dot" />
-          </Link>
+          <span className="home-top-icons">
+            <Link to="/watchlist" className="home-bell" aria-label="Watchlist">
+              <Icon name="heart" size={22} stroke="#fff" width={1.8} />
+            </Link>
+            <Link to="/account" className="home-bell" aria-label="Notifications">
+              <Icon name="bell" size={22} stroke="#fff" width={1.8} />
+              <span className="dot" />
+            </Link>
+          </span>
         </div>
         <Link to="/search" className="home-search">
           <Icon name="search" size={20} />

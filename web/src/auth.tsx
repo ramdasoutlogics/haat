@@ -55,6 +55,7 @@ export function GoogleButton({ next, className = 'google-btn' }: { next?: string
 const WHY: [RegExp, string, string][] = [
   [/^\/sell/, 'Sign in to sell', 'Post an ad in two minutes. Listing is free.'],
   [/^\/chats/, 'Sign in to see your chats', 'Talk to buyers and sellers, and keep track of offers.'],
+  [/^\/watchlist/, 'Sign in to see your watchlist', 'Save listings to track price drops and auctions closing soon.'],
   [/^\/account/, 'Sign in to Haat', 'See your listings, watchlist, bids and notifications.'],
 ]
 
