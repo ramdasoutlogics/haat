@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const isProd = process.env.NODE_ENV === 'production'
 const port = Number(process.env.PORT || 3000)
+const host = process.env.HOST || '127.0.0.1'
 const apiUrl = (process.env.API_URL || 'http://localhost:8000').replace(/\/$/, '')
 const root = path.dirname(fileURLToPath(import.meta.url))
 
@@ -100,4 +101,4 @@ app.get('*', async (req, res) => {
   }
 })
 
-app.listen(port, () => console.log(`Haat web on http://localhost:${port} (API ${apiUrl})`))
+app.listen(port, host, () => console.log(`Haat web on http://${host}:${port} (API ${apiUrl})`))

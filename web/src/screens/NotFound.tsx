@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Empty } from '../components/ui'
 
-export function title(_: never) {
+export function title() {
   return 'Page not found'
 }
 

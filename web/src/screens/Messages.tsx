@@ -374,7 +374,7 @@ function Thread({ chatId, chat, summary, error, onRetry, pending, now, onSend, o
             <span className="msg-who">
               <strong>{name}{head.other.verified && <span className="d-only"><VerifiedMark size={16} /></span>}</strong>
               <span className="m-only msg-online">Online · {head.other.verified ? 'verified ' : ''}{otherRole}</span>
-              <span className="d-only msg-meta">{otherRole === 'buyer' ? 'Buyer' : 'Seller'} · {head.other.verified ? 'ID verified on Haat' : 'Not verified yet'}{head.other.ratings ? ` · ${head.other.ratings} ratings, ${head.other.positive}% positive` : ''}{head.other.reply_time ? ` · Usually replies in ${head.other.reply_time.replace('~', '')}` : ''}</span>
+              <span className="d-only msg-meta">{otherRole === 'buyer' ? 'Buyer' : 'Seller'} · {head.other.verified ? 'ID verified on Haat' : 'Not verified yet'}{head.other.ratings ? ` · ${head.other.ratings} ratings, ${Number(head.other.positive.toFixed(1))}% positive` : ''}{head.other.reply_time ? ` · Usually replies in ${head.other.reply_time.replace('~', '')}` : ''}</span>
             </span>
           </>
         ) : (

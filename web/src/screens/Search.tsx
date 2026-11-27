@@ -68,7 +68,7 @@ export async function load({ search }: LoadArgs): Promise<SearchData> {
   return { page: await api.listings({ ...parse(search), limit: PAGE }) }
 }
 
-export function title(_data: SearchData) {
+export function title() {
   return 'Search results'
 }
 
